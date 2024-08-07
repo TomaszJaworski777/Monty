@@ -35,7 +35,7 @@ mod net {
 
 #[cfg(not(feature = "embed"))]
 mod nonet {
-    use monty::{read_into_struct_unchecked, ChessState, MctsParams, Uci};
+    use monty::{read_into_struct_unchecked, ChessState, MathTables, MctsParams, Uci};
 
     pub fn run() {
         let mut args = std::env::args();
@@ -46,11 +46,13 @@ mod nonet {
         let value = unsafe { read_into_struct_unchecked(monty::ValueFileDefaultName) };
 
         if let Some("bench") = arg1.as_deref() {
+            let params = MctsParams::default();
             Uci::bench(
                 ChessState::BENCH_DEPTH,
                 &policy,
                 &value,
-                &MctsParams::default(),
+                &params,
+                &MathTables::new(&params)
             );
             return;
         }

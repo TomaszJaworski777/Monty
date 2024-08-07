@@ -1,6 +1,6 @@
 use crate::{
     chess::{ChessState, Move},
-    mcts::{Limits, SearchHelpers, Searcher},
+    mcts::{Limits, MathTables, SearchHelpers, Searcher},
     MctsParams, PolicyNetwork, Tree, ValueNetwork,
 };
 
@@ -24,6 +24,7 @@ impl Uci {
         let mut pos = ChessState::default();
         let mut root_game_ply = 0;
         let mut params = MctsParams::default();
+        let mut tables = MathTables::new(&params);
         let mut tree = Tree::new_mb(64, 1);
         let mut report_moves = false;
         let mut threads = 1;
@@ -55,6 +56,7 @@ impl Uci {
                 "setoption" => setoption(
                     &commands,
                     &mut params,
+                    &mut tables,
                     &mut report_moves,
                     &mut tree,
                     &mut threads,
@@ -71,6 +73,7 @@ impl Uci {
                         &pos,
                         root_game_ply,
                         &params,
+                        &tables,
                         report_moves,
                         policy,
                         value,
@@ -132,7 +135,7 @@ impl Uci {
         }
     }
 
-    pub fn bench(depth: usize, policy: &PolicyNetwork, value: &ValueNetwork, params: &MctsParams) {
+    pub fn bench(depth: usize, policy: &PolicyNetwork, value: &ValueNetwork, params: &MctsParams, tables: &MathTables) {
         let mut total_nodes = 0;
         let bench_fens = Self::FEN_STRING.split('\n').collect::<Vec<&str>>();
         let mut time = 0.0;
@@ -150,7 +153,7 @@ impl Uci {
             let abort = AtomicBool::new(false);
             let pos = ChessState::from_fen(fen);
             tree.try_use_subtree(&pos, &None, 1);
-            let searcher = Searcher::new(pos, &tree, params, policy, value, &abort);
+            let searcher = Searcher::new(pos, &tree, params, tables, policy, value, &abort);
             let timer = Instant::now();
             searcher.search(1, limits, false, &mut total_nodes);
             time += timer.elapsed().as_secs_f32();
@@ -181,6 +184,7 @@ fn preamble() {
 fn setoption(
     commands: &[&str],
     params: &mut MctsParams,
+    tables: &mut MathTables,
     report_moves: &mut bool,
     tree: &mut Tree,
     threads: &mut usize,
@@ -209,6 +213,7 @@ fn setoption(
         *tree = Tree::new_mb(val as usize, *threads);
     } else {
         params.set(name, val);
+        *tables = MathTables::new(params);
     }
 }
 
@@ -255,6 +260,7 @@ fn go(
     pos: &ChessState,
     root_game_ply: u32,
     params: &MctsParams,
+    tables: &MathTables,
     report_moves: bool,
     policy: &PolicyNetwork,
     value: &ValueNetwork,
@@ -334,7 +340,7 @@ fn go(
 
     std::thread::scope(|s| {
         s.spawn(|| {
-            let searcher = Searcher::new(pos.clone(), tree, params, policy, value, &abort);
+            let searcher = Searcher::new(pos.clone(), tree, params, tables, policy, value, &abort);
             let (mov, _) = searcher.search(threads, limits, true, &mut 0);
             println!("bestmove {}", pos.conv_mov_to_str(mov));
 

@@ -5,6 +5,8 @@ use crate::{
     tree::{ActionStats, Edge},
 };
 
+use super::math_tables::MathTables;
+
 pub struct SearchHelpers;
 
 impl SearchHelpers {
@@ -35,8 +37,12 @@ impl SearchHelpers {
     /// Exploration Scaling
     ///
     /// Larger value implies more exploration.
-    pub fn get_explore_scaling(params: &MctsParams, node_stats: &ActionStats) -> f32 {
-        (params.expl_tau() * (node_stats.visits().max(1) as f32).ln()).exp()
+    pub fn get_explore_scaling(params: &MctsParams, node_stats: &ActionStats, tables: &MathTables) -> f32 {
+        if node_stats.visits() <= MathTables::EXPLORE_SCALING_TABLE_SIZE {
+            tables.get_explore_scaling_value(node_stats.visits().max(1) as usize - 1)
+        } else {
+            (params.expl_tau() * (node_stats.visits().max(1) as f32).ln()).exp()
+        }
     }
 
     /// First Play Urgency

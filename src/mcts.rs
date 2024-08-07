@@ -1,7 +1,9 @@
 mod helpers;
 mod params;
+mod math_tables;
 
 pub use helpers::SearchHelpers;
+pub use math_tables::MathTables;
 pub use params::MctsParams;
 
 use crate::{
@@ -28,6 +30,7 @@ pub struct Searcher<'a> {
     root_position: ChessState,
     tree: &'a Tree,
     params: &'a MctsParams,
+    tables: &'a MathTables,
     policy: &'a PolicyNetwork,
     value: &'a ValueNetwork,
     abort: &'a AtomicBool,
@@ -38,6 +41,7 @@ impl<'a> Searcher<'a> {
         root_position: ChessState,
         tree: &'a Tree,
         params: &'a MctsParams,
+        tables: &'a MathTables,
         policy: &'a PolicyNetwork,
         value: &'a ValueNetwork,
         abort: &'a AtomicBool,
@@ -46,6 +50,7 @@ impl<'a> Searcher<'a> {
             root_position,
             tree,
             params,
+            tables,
             policy,
             value,
             abort,
@@ -349,7 +354,7 @@ impl<'a> Searcher<'a> {
 
         let cpuct = SearchHelpers::get_cpuct(self.params, node_stats, is_root);
         let fpu = SearchHelpers::get_fpu(node_stats);
-        let expl_scale = SearchHelpers::get_explore_scaling(self.params, node_stats);
+        let expl_scale = SearchHelpers::get_explore_scaling(self.params, node_stats, self.tables);
 
         let expl = cpuct * expl_scale;
 

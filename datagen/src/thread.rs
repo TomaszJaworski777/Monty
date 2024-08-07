@@ -1,7 +1,7 @@
 use crate::{to_slice_with_lifetime, Binpack, Destination, PolicyData, Rand};
 
 use monty::{
-    ChessState, GameState, Limits, MctsParams, PolicyNetwork, Searcher, Tree, ValueNetwork,
+    ChessState, GameState, Limits, MathTables, MctsParams, PolicyNetwork, Searcher, Tree, ValueNetwork
 };
 
 use std::{
@@ -16,6 +16,7 @@ use std::{
 pub struct DatagenThread<'a> {
     rng: Rand,
     params: MctsParams,
+    tables: MathTables,
     dest: Arc<Mutex<Destination>>,
     stop: &'a AtomicBool,
     book: Option<Vec<&'a str>>,
@@ -28,9 +29,11 @@ impl<'a> DatagenThread<'a> {
         book: Option<Vec<&'a str>>,
         dest: Arc<Mutex<Destination>>,
     ) -> Self {
+        let tables = MathTables::new(&params);
         Self {
             rng: Rand::with_seed(),
             params,
+            tables,
             dest,
             stop,
             book,
@@ -120,7 +123,7 @@ impl<'a> DatagenThread<'a> {
             let abort = AtomicBool::new(false);
             tree.try_use_subtree(&position, &None, 1);
             let searcher =
-                Searcher::new(position.clone(), &tree, &self.params, policy, value, &abort);
+                Searcher::new(position.clone(), &tree, &self.params, &self.tables, policy, value, &abort);
 
             let (bm, score) = searcher.search(1, limits, false, &mut 0);
 
