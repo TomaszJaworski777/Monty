@@ -127,9 +127,9 @@ impl Node {
             let mut policy = f32::from_bits(action.ptr().inner());
 
             policy = if ROOT {
-                ((policy - max) / params.root_pst()).exp()
+                fastapprox::faster::exp((policy - max) / params.root_pst())
             } else {
-                (policy - max).exp()
+                fastapprox::faster::exp(policy - max)
             };
 
             action.set_ptr(NodePtr::from_raw(f32::to_bits(policy)));
@@ -166,7 +166,7 @@ impl Node {
         let mut total = 0.0;
 
         for policy in &mut policies {
-            *policy = ((*policy - max) / params.root_pst()).exp();
+            *policy = fastapprox::faster::exp((*policy - max) / params.root_pst());
             total += *policy;
         }
 
