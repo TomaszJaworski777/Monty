@@ -323,7 +323,7 @@ impl Tree {
         best_child
     }
 
-    pub fn get_best_child(&self, ptr: NodePtr) -> usize {
+    pub fn get_best_child(&self, ptr: NodePtr, stats: &ActionStats) -> usize {
         self.get_best_child_by_key(ptr, |child| {
             if child.visits() == 0 {
                 f32::NEG_INFINITY
@@ -331,11 +331,10 @@ impl Tree {
                 match self[child.ptr()].state() {
                     GameState::Lost(n) => 1.0 + f32::from(n),
                     GameState::Won(n) => f32::from(n) - 256.0,
-                    GameState::Draw => 0.5,
-                    GameState::Ongoing => child.q(),
+                    _ => child.visits() as f32 / stats.visits() as f32,
                 }
             } else {
-                child.q()
+                child.visits() as f32 / stats.visits() as f32
             }
         })
     }

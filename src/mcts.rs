@@ -434,7 +434,7 @@ impl<'a> Searcher<'a> {
 
         while (mate || depth > 0) && !action.ptr().is_null() && action.ptr().half() == half {
             pv.push(Move::from(action.mov()));
-            let idx = self.tree.get_best_child(action.ptr());
+            let idx = self.tree.get_best_child(action.ptr(), &action.stats());
 
             if idx == usize::MAX {
                 break;
@@ -448,7 +448,7 @@ impl<'a> Searcher<'a> {
     }
 
     fn get_best_action(&self) -> Edge {
-        let idx = self.tree.get_best_child(self.tree.root_node());
+        let idx = self.tree.get_best_child(self.tree.root_node(), self.tree.root_stats());
         self.tree.edge_copy(self.tree.root_node(), idx)
     }
 
