@@ -126,7 +126,8 @@ impl Node {
             0 => unreachable!(),
             1 => params.root_pst(),
             2 => params.depth_2_pst(),
-            3.. => 1.0
+            3 => params.depth_3_pst(),
+            4.. => 1.0
         };
 
         let mut total = 0.0;
@@ -171,7 +172,8 @@ impl Node {
             0 => unreachable!(),
             1 => params.root_pst(),
             2 => params.depth_2_pst(),
-            3.. => unreachable!()
+            3 => params.depth_3_pst(),
+            4.. => unreachable!()
         };
 
         let mut total = 0.0;
