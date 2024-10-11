@@ -234,17 +234,7 @@ impl<'a> Searcher<'a> {
 
         // relabel root policies with root PST value
         if self.tree[node].has_children() {
-            self.tree[node].relabel_policy(&self.root_position, self.params, self.policy, 1);
-
-            for action in &*self.tree[node].actions() {
-                if action.ptr().is_null() || !self.tree[action.ptr()].has_children() {
-                    continue;
-                }
-
-                let mut position = self.root_position.clone();
-                position.make_move(Move::from(action.mov()));
-                self.tree[action.ptr()].relabel_policy(&position, self.params, self.policy, 2);
-            }
+            self.relabel_policy(node, &self.root_position, 1);
         } else {
             self.tree[node].expand(&self.root_position, self.params, self.policy, 1);
         }
@@ -293,6 +283,25 @@ impl<'a> Searcher<'a> {
 
         let best_action = self.get_best_action();
         (Move::from(best_action.mov()), best_action.q())
+    }
+
+    fn relabel_policy(&self, ptr: NodePtr, pos: &ChessState, depth: u8) {
+        self.tree[ptr].relabel_policy(pos, self.params, self.policy, depth);
+
+        if depth == 3 {
+            return;
+        }
+
+        for action in &*self.tree[ptr].actions() {
+            if action.ptr().is_null() || !self.tree[action.ptr()].has_children() {
+                continue;
+            }
+
+            let mut position = self.root_position.clone();
+            position.make_move(Move::from(action.mov()));
+            
+            self.relabel_policy(action.ptr(), &position, depth + 1);
+        }
     }
 
     fn perform_one_iteration(
