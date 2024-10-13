@@ -76,6 +76,12 @@ impl SearchHelpers {
         }
     }
 
+    pub fn get_pst(node_stats: &ActionStats, params: &MctsParams) -> f32 {
+        let scalar = params.losing_pst_threshold() - node_stats.q().min(params.losing_pst_threshold());
+        let t = scalar * (1.0 / params.losing_pst_threshold());
+        1.0 + (params.losing_pst_max() - 1.0) * t
+    }
+
     /// Calculates the maximum allowed time usage for a search
     ///
     /// #### Note
