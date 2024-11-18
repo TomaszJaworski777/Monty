@@ -79,7 +79,8 @@ impl HashTable {
     }
 
     pub fn fetch(&self, hash: u64) -> HashEntry {
-        let idx = hash % (self.table.len() as u64);
+        let key_start = hash & u32::MAX as u64; 
+        let idx = (key_start.wrapping_mul(self.table.len() as u64) >> 32) as usize;
         HashEntry::from(&self.table[idx as usize])
     }
 
@@ -98,7 +99,8 @@ impl HashTable {
     }
 
     pub fn push(&self, hash: u64, q: f32) {
-        let idx = hash % (self.table.len() as u64);
+        let key_start = hash & u32::MAX as u64; 
+        let idx = (key_start.wrapping_mul(self.table.len() as u64) >> 32) as usize;
 
         let entry = HashEntry {
             hash: Self::key(hash),
