@@ -79,12 +79,12 @@ impl HashTable {
     }
 
     pub fn fetch(&self, hash: u64) -> HashEntry {
-        let idx = hash % (self.table.len() as u64);
+        let idx = (u128::from(hash).wrapping_mul(self.table.len() as u128) >> 64) as usize;
         HashEntry::from(&self.table[idx as usize])
     }
 
     fn key(hash: u64) -> u16 {
-        (hash >> 48) as u16
+        hash as u16
     }
 
     pub fn get(&self, hash: u64) -> Option<HashEntry> {
@@ -98,7 +98,7 @@ impl HashTable {
     }
 
     pub fn push(&self, hash: u64, q: f32) {
-        let idx = hash % (self.table.len() as u64);
+        let idx = (u128::from(hash).wrapping_mul(self.table.len() as u128) >> 64) as usize;
 
         let entry = HashEntry {
             hash: Self::key(hash),
