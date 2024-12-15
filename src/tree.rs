@@ -171,15 +171,18 @@ impl Tree {
 
         let feats = pos.get_policy_feats(policy);
         let mut max = f32::NEG_INFINITY;
+        let mut min = f32::INFINITY;
         let mut actions = Vec::new();
 
         pos.map_legal_moves(|mov| {
             let policy = pos.get_policy(mov, &feats, policy);
             actions.push((mov, policy));
             max = max.max(policy);
+            min = min.min(policy);
         });
 
-        let new_ptr = self.tree[self.half()].reserve_nodes(actions.len())?;
+        let actions_len = actions.len();
+        let new_ptr = self.tree[self.half()].reserve_nodes(actions_len)?;
 
         let pst = match depth {
             0 => unreachable!(),
@@ -191,6 +194,11 @@ impl Tree {
         let mut total = 0.0;
 
         for (_, policy) in actions.iter_mut() {
+
+            if *policy == min && actions_len > 7 {
+                *policy = f32::NEG_INFINITY;
+            }
+
             *policy = ((*policy - max) / pst).exp();
             total += *policy;
         }
