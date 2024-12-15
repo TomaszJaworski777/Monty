@@ -16,6 +16,7 @@ embed = []
 datagen = []
 uci-minimal = []
 tunable = []
+pext = []
 
 [workspace]
 members = ["datagen"]

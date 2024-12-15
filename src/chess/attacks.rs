@@ -1,6 +1,6 @@
 use crate::init;
 
-use super::consts::Piece;
+use super::{consts::Piece, sliders::{BishopAttacks, RookAttacks}};
 
 pub struct Attacks;
 impl Attacks {
@@ -34,37 +34,14 @@ impl Attacks {
     // this gets automatically vectorised when targeting avx or better
     #[inline]
     pub fn bishop(sq: usize, occ: u64) -> u64 {
-        let mask = LOOKUP.bishop[sq];
-
-        let mut diag = occ & mask.diag;
-        let mut rev1 = diag.swap_bytes();
-        diag = diag.wrapping_sub(mask.bit);
-        rev1 = rev1.wrapping_sub(mask.swap);
-        diag ^= rev1.swap_bytes();
-        diag &= mask.diag;
-
-        let mut anti = occ & mask.anti;
-        let mut rev2 = anti.swap_bytes();
-        anti = anti.wrapping_sub(mask.bit);
-        rev2 = rev2.wrapping_sub(mask.swap);
-        anti ^= rev2.swap_bytes();
-        anti &= mask.anti;
-
-        diag | anti
+        BishopAttacks::get_bishop_attacks(sq, occ)
     }
 
     // shifted lookup
     // files and ranks are mapped to 1st rank and looked up by occupancy
     #[inline]
     pub fn rook(sq: usize, occ: u64) -> u64 {
-        let flip = ((occ >> (sq & 7)) & File::A).wrapping_mul(DIAG);
-        let file_sq = (flip >> 57) & 0x3F;
-        let files = LOOKUP.file[sq][file_sq as usize];
-
-        let rank_sq = (occ >> RANK_SHIFT[sq]) & 0x3F;
-        let ranks = LOOKUP.rank[sq][rank_sq as usize];
-
-        ranks | files
+        RookAttacks::get_rook_attacks(sq, occ)
     }
 
     #[inline]
@@ -109,9 +86,6 @@ impl File {
     const H: u64 = Self::A << 7;
 }
 
-const EAST: [u64; 64] = init!(|sq, 64| (0xFF << (sq & 56)) ^ (1 << sq) ^ WEST[sq]);
-const WEST: [u64; 64] = init!(|sq, 64| (0xFF << (sq & 56)) & ((1 << sq) - 1));
-const DIAG: u64 = DIAGS[7];
 const DIAGS: [u64; 15] = [
     0x0100_0000_0000_0000,
     0x0201_0000_0000_0000,
@@ -129,32 +103,16 @@ const DIAGS: [u64; 15] = [
     0x0000_0000_0000_8040,
     0x0000_0000_0000_0080,
 ];
-
-// masks for hyperbola quintessence bishop attacks
-#[derive(Clone, Copy)]
-struct Mask {
-    bit: u64,
-    diag: u64,
-    anti: u64,
-    swap: u64,
-}
-
 struct Lookup {
     pawn: [[u64; 64]; 2],
     knight: [u64; 64],
     king: [u64; 64],
-    bishop: [Mask; 64],
-    rank: [[u64; 64]; 64],
-    file: [[u64; 64]; 64],
 }
 
 static LOOKUP: Lookup = Lookup {
     pawn: PAWN,
     knight: KNIGHT,
     king: KING,
-    bishop: BISHOP,
-    rank: RANK,
-    file: FILE,
 };
 
 const PAWN: [[u64; 64]; 2] = [
@@ -175,33 +133,6 @@ const KING: [u64; 64] = init!(|sq, 64| {
     k |= ((k & !File::A) >> 1) | ((k & !File::H) << 1);
     k ^ (1 << sq)
 });
-
-const BISHOP: [Mask; 64] = init!(|sq, 64|
-    let bit = 1 << sq;
-    let file = sq & 7;
-    let rank = sq / 8;
-    Mask {
-        bit,
-        diag: bit ^ DIAGS[7 + file - rank],
-        anti: bit ^ DIAGS[    file + rank].swap_bytes(),
-        swap: bit.swap_bytes()
-    }
-);
-
-const RANK_SHIFT: [usize; 64] = init!(|sq, 64| sq - (sq & 7) + 1);
-
-const RANK: [[u64; 64]; 64] = init!(|sq, 64| init!(|occ, 64| {
-    let file = sq & 7;
-    let mask = (occ << 1) as u64;
-    let east = ((EAST[file] & mask) | (1 << 63)).trailing_zeros() as usize;
-    let west = ((WEST[file] & mask) | 1).leading_zeros() as usize ^ 63;
-    (EAST[file] ^ EAST[east] | WEST[file] ^ WEST[west]) << (sq - file)
-}));
-
-const FILE: [[u64; 64]; 64] = init!(|sq, 64| init!(|occ, 64| (RANK[7 - sq / 8][occ]
-    .wrapping_mul(DIAG)
-    & File::H)
-    >> (7 - (sq & 7))));
 
 pub const fn line_through(i: usize, j: usize) -> u64 {
     let sq = 1 << j;

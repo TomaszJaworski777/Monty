@@ -3,6 +3,7 @@ mod board;
 mod consts;
 mod frc;
 mod moves;
+mod sliders;
 
 use crate::{
     networks::{Accumulator, POLICY_L1},
