@@ -179,11 +179,18 @@ impl Tree {
             max = max.max(policy);
         });
 
-        if actions.len() > 6 {
+        let action_count = actions.len();
+        let factor = params.pruning_factor() / 100.0;
+        let prune_count = (action_count as f32 * factor).floor() as usize;
+
+        if prune_count > 0 {
             actions.sort_by(|a,b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-            actions.last_mut().unwrap().1 = f32::NEG_INFINITY;
         }
 
+        for idx in 0..prune_count {
+            actions[action_count - 1 - idx].1 = f32::NEG_INFINITY;
+        }
+        
         let new_ptr = self.tree[self.half()].reserve_nodes(actions.len())?;
 
         let pst = match depth {
