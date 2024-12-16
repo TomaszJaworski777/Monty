@@ -104,8 +104,12 @@ pub fn run(policy: &PolicyNetwork, value: &ValueNetwork) {
                     moves.push((s, p));
                 });
 
-                let mut total = 0.0;
+                if moves.len() > 6 {
+                    moves.sort_by(|a,b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+                    moves.last_mut().unwrap().1 = f32::NEG_INFINITY;
+                }
 
+                let mut total = 0.0;
                 for (_, p) in &mut moves {
                     *p = (*p - max).exp();
                     total += *p;
