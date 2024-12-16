@@ -187,7 +187,7 @@ impl Tree {
         let pst = match depth {
             0 => unreachable!(),
             1 => params.root_pst(),
-            2 => params.depth_2_pst(),
+            2 => 1.0 + params.depth_2_pst_adjustment(),
             3.. => SearchHelpers::get_pst(self[node_ptr].q(), params),
         };
 
@@ -249,7 +249,7 @@ impl Tree {
         let pst = match depth {
             0 => unreachable!(),
             1 => params.root_pst(),
-            2 => params.depth_2_pst(),
+            2 => 1.0 + params.depth_2_pst_adjustment(),
             3.. => unreachable!(),
         };
 
