@@ -195,7 +195,7 @@ impl Tree {
 
         for (_, policy) in actions.iter_mut() {
 
-            if *policy == min && actions_len > 7 {
+            if *policy == min && actions_len > 6 {
                 *policy = f32::NEG_INFINITY;
             }
 
