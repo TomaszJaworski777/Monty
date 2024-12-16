@@ -181,6 +181,7 @@ impl Tree {
             min = min.min(policy);
         });
 
+        
         let actions_len = actions.len();
         let new_ptr = self.tree[self.half()].reserve_nodes(actions_len)?;
 
