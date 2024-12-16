@@ -135,7 +135,7 @@ make_mcts_params! {
     winning_pst_threshold: f32 = 0.603, 0.0, 1.0, 0.05, 0.002;
     winning_pst_max: f32 = 1.615, 0.1, 10.0, 0.1, 0.002;
     base_pst_adjustment: f32 = -0.05, 0.1, 10.0, 0.005, 0.002;
-    capture_pst_bonus: f32 = -0.1, 0.1, 10.0, 0.01, 0.002;
+    capture_pst_bonus: f32 = -0.2, 0.1, 10.0, 0.02, 0.002;
     root_cpuct: f32 = 0.422, 0.1, 5.0, 0.065, 0.002;
     cpuct: f32 = 0.269, 0.1, 5.0, 0.065, 0.002;
     cpuct_var_weight: f32 = 0.808, 0.0, 2.0, 0.085, 0.002;
