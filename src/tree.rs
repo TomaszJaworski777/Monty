@@ -171,17 +171,22 @@ impl Tree {
 
         let feats = pos.get_policy_feats(policy);
         let mut max = f32::NEG_INFINITY;
+        let mut is_best_move_capture = false;
         let mut actions = Vec::new();
 
         pos.map_legal_moves(|mov| {
             let policy = pos.get_policy(mov, &feats, policy);
             actions.push((mov, policy));
-            max = max.max(policy);
+            
+            if policy > max {
+                max = policy;
+                is_best_move_capture = mov.is_capture();
+            }
         });
 
         let new_ptr = self.tree[self.half()].reserve_nodes(actions.len())?;
 
-        let pst = SearchHelpers::get_pst(depth, self[node_ptr].q(), params);
+        let pst = SearchHelpers::get_pst(depth, self[node_ptr].q(), is_best_move_capture, params);
 
         let mut total = 0.0;
 

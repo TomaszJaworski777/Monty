@@ -59,10 +59,15 @@ impl SearchHelpers {
     }
 
     /// Common depth PST
-    pub fn get_pst(depth: usize, q: f32, params: &MctsParams) -> f32 {
+    pub fn get_pst(depth: usize, q: f32, is_best_move_capture: bool, params: &MctsParams) -> f32 {
         let scalar = q - q.min(params.winning_pst_threshold());
         let t = scalar / (1.0 - params.winning_pst_threshold());
-        let base_pst = ((depth as f32) - 0.34).powf(-1.8) + 0.9;
+        let mut base_pst = ((depth as f32) - 0.34).powf(-1.8) + 0.9;
+
+        if is_best_move_capture {
+            base_pst += params.capture_pst_bonus();
+        }
+
         base_pst + (params.winning_pst_max() - base_pst) * t
     }
 
