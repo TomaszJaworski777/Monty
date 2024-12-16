@@ -64,8 +64,8 @@ impl SearchHelpers {
         let t = scalar / (1.0 - params.winning_pst_threshold());
         let mut base_pst = ((depth as f32) - 0.34).powf(-1.8) + 0.9;
 
-        if is_best_move_capture {
-            base_pst += params.capture_pst_bonus();
+        if !is_best_move_capture {
+            base_pst += params.non_capture_pst_bonus();
         }
 
         base_pst + (params.winning_pst_max() - base_pst) * t
