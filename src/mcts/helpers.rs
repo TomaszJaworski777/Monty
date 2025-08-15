@@ -11,13 +11,9 @@ impl SearchHelpers {
     /// CPUCT
     ///
     /// Larger value implies more exploration.
-    pub fn get_cpuct(params: &MctsParams, node: &Node, is_root: bool) -> f32 {
+    pub fn get_cpuct(params: &MctsParams, node: &Node, depth: f32) -> f32 {
         // baseline CPUCT value
-        let mut cpuct = if is_root {
-            params.root_cpuct()
-        } else {
-            params.cpuct()
-        };
+        let mut cpuct = params.cpuct();
 
         // scale CPUCT as visits increase
         let scale = params.cpuct_visits_scale() * 128.0;
@@ -29,6 +25,8 @@ impl SearchHelpers {
             frac += (1.0 - frac) / (1.0 + params.cpuct_var_warmup() * node.visits() as f32);
             cpuct *= 1.0 + params.cpuct_var_weight() * (frac - 1.0);
         }
+
+        cpuct *= (1.0 - depth.ln() / params.cpuct_depth_scale()).max(params.cpuct_depth_min());
 
         cpuct
     }
