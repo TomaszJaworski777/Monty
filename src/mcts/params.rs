@@ -136,9 +136,9 @@ make_mcts_params! {
     winning_pst_max: f32 = 1.615, 0.1, 10.0, 0.1, 0.002;
     base_pst_adjustment: f32 = 0.1, 0.01, 1.0, 0.01, 0.002;
     start_cpuct: f32 = 0.422, 0.1, 5.0, 0.042, 0.002;
-    end_cpuct: f32 = 0.252, 0.1, 5.0, 0.026, 0.002;
+    end_cpuct: f32 = 0.256, 0.1, 5.0, 0.026, 0.002;
     start_depth_decay: f32 = 270.0, 0.1, 500.0, 35.0, 0.002;
-    end_depth_decay: f32 = 21.0, 0.1, 500.0, 35.0, 0.002;
+    end_depth_decay: f32 = 25.0, 0.1, 500.0, 35.0, 0.002;
     depth_decay_factor: f32 = 43.2, 0.1, 500.0, 10.0, 0.002;
     cpuct_var_weight: f32 = 0.808, 0.0, 2.0, 0.085, 0.002;
     cpuct_var_scale: f32 = 0.278, 0.0, 2.0, 0.02, 0.002;
