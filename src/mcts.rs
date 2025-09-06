@@ -116,12 +116,14 @@ impl<'a> Searcher<'a> {
         loop {
             let mut pos = self.tree.root_position().clone();
             let mut this_depth = 0;
+            let mut main_line = true;
 
             if iteration::perform_one(
                 self,
                 &mut pos,
                 self.tree.root_node(),
                 &mut this_depth,
+                &mut main_line,
                 thread_id,
             )
             .is_none()

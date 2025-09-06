@@ -10,6 +10,7 @@ pub fn perform_one(
     pos: &mut ChessState,
     ptr: NodePtr,
     depth: &mut usize,
+    main_line: &mut bool,
     thread_id: usize,
 ) -> Option<f32> {
     *depth += 1;
@@ -52,7 +53,7 @@ pub fn perform_one(
         tree.fetch_children(ptr, thread_id)?;
 
         // select action to take via PUCT
-        let action = pick_action(searcher, ptr, node);
+        let action = pick_action(searcher, ptr, node, main_line);
 
         let child_ptr = node.actions() + action;
 
@@ -74,7 +75,7 @@ pub fn perform_one(
         };
 
         // descend further
-        let maybe_u = perform_one(searcher, pos, child_ptr, depth, thread_id);
+        let maybe_u = perform_one(searcher, pos, child_ptr, depth, main_line, thread_id);
 
         drop(lock);
 
@@ -110,17 +111,21 @@ fn get_utility(searcher: &Searcher, ptr: NodePtr, pos: &ChessState) -> f32 {
     }
 }
 
-fn pick_action(searcher: &Searcher, ptr: NodePtr, node: &Node) -> usize {
+fn pick_action(searcher: &Searcher, ptr: NodePtr, node: &Node, main_line: &mut bool) -> usize {
     let is_root = ptr == searcher.tree.root_node();
 
-    let cpuct = SearchHelpers::get_cpuct(searcher.params, node, is_root);
+    let cpuct = SearchHelpers::get_cpuct(searcher.params, node, is_root, *main_line);
     let fpu = SearchHelpers::get_fpu(node);
     let expl_scale = SearchHelpers::get_explore_scaling(searcher.params, node);
 
     let expl = cpuct * expl_scale;
 
-    searcher.tree.get_best_child_by_key(ptr, |child| {
+    let mut max_q = f32::NEG_INFINITY;
+
+    let reuslt = searcher.tree.get_best_child_by_key(ptr, |child| {
         let mut q = SearchHelpers::get_action_value(child, fpu);
+
+        max_q = max_q.max(q);
 
         // virtual loss
         let threads = f64::from(child.threads());
@@ -134,5 +139,11 @@ fn pick_action(searcher: &Searcher, ptr: NodePtr, node: &Node) -> usize {
         let u = expl * child.policy() / (1 + child.visits()) as f32;
 
         q + u
-    })
+    });
+
+    if *main_line && max_q > searcher.tree[node.actions() + reuslt].q() {
+        *main_line = false;
+    }
+
+    reuslt
 }
