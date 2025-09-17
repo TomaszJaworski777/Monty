@@ -159,7 +159,7 @@ impl SearchHelpers {
         let eval_diff = if previous_score == f32::NEG_INFINITY {
             0.0
         } else {
-            previous_score - score
+            score - previous_score
         };
         let falling_eval = (1.0 + eval_diff * searcher.params.tm_falling_eval1()).clamp(
             searcher.params.tm_falling_eval2(),
