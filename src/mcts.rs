@@ -123,6 +123,7 @@ impl<'a> Searcher<'a> {
                 &mut pos,
                 self.tree.root_node(),
                 &mut this_depth,
+                search_stats.avg_depth.load(Ordering::Relaxed),
                 &mut main_line,
                 thread_id,
             )

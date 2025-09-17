@@ -10,6 +10,7 @@ pub fn perform_one(
     pos: &mut ChessState,
     ptr: NodePtr,
     depth: &mut usize,
+    avg_depth: usize,
     main_line: &mut bool,
     thread_id: usize,
 ) -> Option<f32> {
@@ -53,7 +54,7 @@ pub fn perform_one(
         tree.fetch_children(ptr, thread_id)?;
 
         // select action to take via PUCT
-        let action = pick_action(searcher, ptr, node, main_line);
+        let action = pick_action(searcher, ptr, node, main_line, *depth, avg_depth);
 
         let child_ptr = node.actions() + action;
 
@@ -75,7 +76,7 @@ pub fn perform_one(
         };
 
         // descend further
-        let maybe_u = perform_one(searcher, pos, child_ptr, depth, main_line, thread_id);
+        let maybe_u = perform_one(searcher, pos, child_ptr, depth, avg_depth, main_line, thread_id);
 
         drop(lock);
 
@@ -111,7 +112,7 @@ fn get_utility(searcher: &Searcher, ptr: NodePtr, pos: &ChessState) -> f32 {
     }
 }
 
-fn pick_action(searcher: &Searcher, ptr: NodePtr, node: &Node, main_line: &mut bool) -> usize {
+fn pick_action(searcher: &Searcher, ptr: NodePtr, node: &Node, main_line: &mut bool, depth: usize, avg_depth: usize) -> usize {
     let is_root = ptr == searcher.tree.root_node();
 
     let cpuct = SearchHelpers::get_cpuct(searcher.params, node, is_root, *main_line);
@@ -141,7 +142,7 @@ fn pick_action(searcher: &Searcher, ptr: NodePtr, node: &Node, main_line: &mut b
         q + u
     });
 
-    if *main_line && max_q > searcher.tree[node.actions() + reuslt].q() {
+    if (*main_line && max_q > searcher.tree[node.actions() + reuslt].q()) || depth > avg_depth {
         *main_line = false;
     }
 
