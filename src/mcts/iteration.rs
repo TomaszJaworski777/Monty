@@ -123,28 +123,45 @@ fn pick_action(searcher: &Searcher, ptr: NodePtr, node: &Node, main_line: &mut b
 
     let mut max_q = f32::NEG_INFINITY;
 
-    let reuslt = searcher.tree.get_best_child_by_key(ptr, |child| {
-        let mut q = SearchHelpers::get_action_value(child, fpu);
+    let actions_ptr = node.actions();
+    let mut acc = 0.0;
+    let mut k = 0;
+    while k < node.num_actions() && acc < searcher.params.policy_top_p() {
+        acc += searcher.tree[actions_ptr + k].policy();
+        k += 1;
+    }
+    let mut limit = k.max(searcher.params.min_policy_actions() as usize);
+    let mut thresh = 1u32 << (searcher.params.visit_threshold_power() as u32);
+    while node.visits() >= thresh && limit < node.num_actions() {
+        limit += 2;
+        thresh = thresh.checked_shl(1).unwrap_or(u32::MAX);
+    }
+    limit = limit.min(node.num_actions());
 
-        max_q = max_q.max(q);
+    let result = searcher
+        .tree
+        .get_best_child_by_key_lim(ptr, limit, |child| {
+            let mut q = SearchHelpers::get_action_value(child, fpu);
 
-        // virtual loss
-        let threads = f64::from(child.threads());
-        if threads > 0.0 {
-            let visits = f64::from(child.visits());
-            let q2 = f64::from(q) * visits
-                / (visits + 1.0 + searcher.params.virtual_loss_weight() * (threads - 1.0));
-            q = q2 as f32;
-        }
+            max_q = q.max(max_q);
 
-        let u = expl * child.policy() / (1 + child.visits()) as f32;
+            // virtual loss
+            let threads = f64::from(child.threads());
+            if threads > 0.0 {
+                let visits = f64::from(child.visits());
+                let q2 = f64::from(q) * visits
+                    / (visits + 1.0 + searcher.params.virtual_loss_weight() * (threads - 1.0));
+                q = q2 as f32;
+            }
 
-        q + u
-    });
+            let u = expl * child.policy() / (1 + child.visits()) as f32;
 
-    if (*main_line && max_q > searcher.tree[node.actions() + reuslt].q()) || depth > avg_depth {
+            q + u
+        });
+
+    if (*main_line && max_q > searcher.tree[node.actions() + result].q()) || depth > avg_depth {
         *main_line = false;
     }
 
-    reuslt
+    result
 }
