@@ -1,12 +1,12 @@
 use montyformat::chess::{
-    consts::{Piece, Side},
+    consts::{Piece, Side, IN_BETWEEN},
     Attacks,
 };
 
 use crate::networks::value::attacks::{ValueAttacks, ValueIndices, ValueOffsets};
 
 const TOTAL_THREATS: usize = 2 * ValueOffsets::END;
-pub const TOTAL: usize = TOTAL_THREATS + 768;
+pub const TOTAL: usize = TOTAL_THREATS + 768 * 3;
 
 pub fn map_features<F: FnMut(usize)>(mut bbs: [u64; 8], stm: usize, mut f: F) {
     // flip to stm perspective
@@ -33,6 +33,30 @@ pub fn map_features<F: FnMut(usize)>(mut bbs: [u64; 8], stm: usize, mut f: F) {
         }
     }
 
+    //pin masks
+    let rq = bbs[Piece::QUEEN] | bbs[Piece::ROOK];
+    let bq = bbs[Piece::QUEEN] | bbs[Piece::BISHOP];
+    let mut pinned = [0, 0, 0, 0];
+
+    for defender_idx in 0..=1 {
+        let attacker_idx = 1 - defender_idx;
+        let ksq = (bbs[defender_idx] & bbs[Piece::KING]).trailing_zeros() as usize;
+
+        let pins = [
+            Attacks::bishop(ksq, bbs[attacker_idx]) & bbs[attacker_idx] & bq,
+            Attacks::rook(ksq, bbs[attacker_idx]) & bbs[attacker_idx] & rq,
+        ];
+
+        for (idx, &pinners) in pins.iter().enumerate() {
+            map_bb(pinners, |pinner| {
+                let pin = IN_BETWEEN[ksq][pinner] & bbs[defender_idx];
+                if pin.count_ones() == 1 {
+                    pinned[idx + defender_idx * 2] |= pin;
+                }
+            });
+        }
+    }
+
     let occ = bbs[0] | bbs[1];
 
     for side in [Side::WHITE, Side::BLACK] {
@@ -51,7 +75,14 @@ pub fn map_features<F: FnMut(usize)>(mut bbs: [u64; 8], stm: usize, mut f: F) {
                     _ => unreachable!(),
                 } & occ;
 
-                f(TOTAL_THREATS + [0, 384][side] + 64 * (piece - 2) + sq);
+                let mut feat = TOTAL_THREATS + [0, 384][side] + 64 * (piece - 2) + sq;
+                if pinned[0] & (1 << sq) > 0 {
+                    feat += 768;
+                }
+                if pinned[1] & (1 << sq) > 0 {
+                    feat += 768 * 2;
+                }
+                f(feat);
                 map_bb(threats, |dest| {
                     let enemy = (1 << dest) & opps > 0;
                     if let Some(idx) = map_piece_threat(piece, sq, dest, pieces[dest], enemy) {
@@ -60,6 +91,8 @@ pub fn map_features<F: FnMut(usize)>(mut bbs: [u64; 8], stm: usize, mut f: F) {
                 });
             });
         }
+
+        (pinned[0], pinned[1], pinned[2], pinned[3]) = (pinned[2], pinned[3], pinned[0], pinned[1]);
     }
 }
 
