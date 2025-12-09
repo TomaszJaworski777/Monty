@@ -220,16 +220,32 @@ impl ChessState {
                 + self.piece_count(Piece::ROOK) * params.rook_value()
                 + self.piece_count(Piece::QUEEN) * params.queen_value();
 
-            let draw_adj = raw.draw
-                * (params.material_draw_offset() - mat) as f32
-                * params.material_draw_scale()
-                / 1000.0;
+            let max_mat = 
+                4 * params.knight_value() + 
+                4 * params.bishop_value() + 
+                4 * params.rook_value() + 
+                2 * params.queen_value();
 
-            let sum = raw.win + raw.draw + draw_adj + raw.loss;
+            let material_factor = (1.0 - (mat as f32 / max_mat as f32)).clamp(0.0, 1.0);
+            let mut scale = params.scale_start_pos() + material_factor.powf(params.material_power()) * (params.scale_zero_mat() - params.scale_start_pos());
+
+            let q = (raw.win + raw.loss).clamp(0.0001, 1.0);
+            let p = raw.win / q;
+
+            scale += (1.0 - scale) * q.powf(params.wl_dampening_power());
+
+            let score = raw.win + raw.draw * 0.5;
+            let scale = 1.0 / (1.0 + (-scale * (score / (1.0 - score)).ln()).exp());
+
+            let new_q = ((scale - 0.5) / (p - 0.5)).clamp(0.0, 1.0);
+
+            let new_w = p * new_q;
+            let new_d = 1.0 - new_q;
+
             let material = EvalWdl {
-                win: raw.win / sum,
-                draw: (raw.draw + draw_adj) / sum,
-                loss: raw.loss / sum,
+                win: new_w,
+                draw: new_d,
+                loss: 1.0 - new_w - new_d,
             };
             (material, material.to_cp_i32())
         };
