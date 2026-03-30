@@ -73,8 +73,15 @@ impl SearchHelpers {
     ///
     /// #### Note
     /// Must return a value in [0, 1].
-    pub fn get_fpu(node: &Node) -> f32 {
-        1.0 - node.q()
+    pub fn get_fpu(
+        parent_score: f32,
+        child_policy: f32,
+        children_count: usize,
+        params: &MctsParams,
+    ) -> f32 {
+        let reduction =
+            (1.0 - child_policy * children_count as f32).max(0.0) * params.fpu_reduction();
+        (parent_score - reduction).max(0.0)
     }
 
     /// Get a predicted win probability for an action

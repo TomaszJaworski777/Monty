@@ -132,7 +132,6 @@ fn pick_action(searcher: &Searcher, ptr: NodePtr, node: &Node) -> usize {
     let is_root = ptr == searcher.tree.root_node();
 
     let cpuct = SearchHelpers::get_cpuct(searcher.params, node, is_root);
-    let fpu = SearchHelpers::get_fpu(node);
     let expl_scale = SearchHelpers::get_explore_scaling(searcher.params, node);
 
     let expl = cpuct * expl_scale;
@@ -152,9 +151,17 @@ fn pick_action(searcher: &Searcher, ptr: NodePtr, node: &Node) -> usize {
     }
     limit = limit.min(node.num_actions());
 
+    let parent_score = 1.0 - node.q();
+
     searcher
         .tree
         .get_best_child_by_key_lim(ptr, limit, |child| {
+            let fpu = SearchHelpers::get_fpu(
+                parent_score,
+                child.policy(),
+                node.num_actions(),
+                searcher.params,
+            );
             let mut q = SearchHelpers::get_action_value(child, fpu);
 
             // virtual loss
